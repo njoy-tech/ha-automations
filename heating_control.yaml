@@ -1,86 +1,94 @@
 alias: Heating Control Based on Time and Temperature
 description: >
-  Controls the heaters in the room (sofa and desk) based on the
-  current time and room temperature. Sets the HVAC mode to 'heat' for
-  a higher target temperature and to 'idle' for a lower target temperature.
+  Controls the heaters (sofa and desk) based on room temperature and specified time ranges.
+  Sets HVAC mode to 'heat' with a higher target temperature during defined periods and to 'idle' with a lower target temperature otherwise.
 trigger:
-  # Temperature drops below 22°C
+  # Trigger when temperature falls below 22°C
   - platform: numeric_state
-    entity_id: sensor.<entity>_temperature
+    entity_id: sensor.wz_temp_temperature
     below: 22
-  # Temperature rises above 20°C
+  # Trigger when temperature rises above 20°C
   - platform: numeric_state
-    entity_id: sensor.<entity>_temperature
+    entity_id: sensor.wz_temp_temperature
     above: 20
-  # Specific times: start and end of defined time ranges
+  # Time-based triggers at the start and end of each high heating period
   - platform: time
     at:
-      - 'start1'
-      - 'end1'
-      - 'start2'
-      - 'end2'
+      - '05:00:00'
+      - '07:00:00'
+      - '16:00:00'
+      - '21:00:00'
 condition: []
 action:
   - choose:
-      # Conditions for higher target temperature (23°C)
+      # Condition to activate high heating
       - conditions:
+          # Temperature is below 22°C
           - condition: numeric_state
-            entity_id: sensor.<entity>_temperature
+            entity_id: sensor.wz_temp_temperature
             below: 22
+          # Current time is within one of the high heating ranges
           - condition: or
             conditions:
               - condition: time
-                after: 'start1'
-                before: 'end1'
+                after: '05:00:00'
+                before: '07:00:00'
               - condition: time
-                after: 'start2'
-                before: 'end2'
+                after: '16:00:00'
+                before: '21:00:00'
         sequence:
-          # Set HVAC mode to 'heat' and target temperature to 23°C
+          # Set HVAC mode to 'heat' for both heaters
           - service: climate.set_hvac_mode
             target:
               entity_id:
-                - climate.<entity>
-                - climate.<entity>
+                - climate.wz_heizung_sofa
+                - climate.wz_heizung_schreibtisch
             data:
               hvac_mode: 'heat'
+          # Set target temperature to 23°C for both heaters
           - service: climate.set_temperature
             target:
               entity_id:
-                - climate.<entity>
-                - climate.<entity>
+                - climate.wz_heizung_sofa
+                - climate.wz_heizung_schreibtisch
             data:
               temperature: 23
-      # Default action: Set target temperature to 20°C and HVAC mode to 'idle'
+      # Condition to set heating to idle
       - conditions:
+          # Either the current time is outside all high heating ranges
+          # OR the temperature is above 20°C
           - condition: or
             conditions:
-              - condition: not
+              # Time is not within any high heating period
+              - condition: and
                 conditions:
-                  - condition: or
+                  - condition: not
                     conditions:
                       - condition: time
-                        after: 'start1'
-                        before: 'end1'
+                        after: '05:00:00'
+                        before: '07:00:00'
                       - condition: time
-                        after: 'start2'
-                        before: 'end2'
+                        after: '16:00:00'
+                        before: '21:00:00'
+              # Temperature is above 20°C
               - condition: numeric_state
-                entity_id: sensor.<entity>_temperature
+                entity_id: sensor.wz_temp_temperature
                 above: 20
         sequence:
+          # Set target temperature to 20°C for both heaters
           - service: climate.set_temperature
             target:
               entity_id:
-                - climate.<entity>
-                - climate.<entity>
+                - climate.wz_heizung_sofa
+                - climate.wz_heizung_schreibtisch
             data:
               temperature: 20
+          # Set HVAC mode to 'idle' for both heaters
           - service: climate.set_hvac_mode
             target:
               entity_id:
-                - climate.<entity>
-                - climate.<entity>
+                - climate.wz_heizung_sofa
+                - climate.wz_heizung_schreibtisch
             data:
               hvac_mode: 'idle'
     default: []
