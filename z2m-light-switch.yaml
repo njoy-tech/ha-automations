@@ -1,0 +1,35 @@
+alias: Switch Light
+description: Switches the lamps on or off when the Zigbee MQTT button is pressed
+triggers:
+  - topic: zigbee2mqtt/<switch-name>/action
+    payload: "on"
+    id: switch_on
+    trigger: mqtt
+  - topic: zigbee2mqtt/<switch-name>/action
+    payload: "off"
+    id: switch_off
+    trigger: mqtt
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: switch_on
+        sequence:
+          - target:
+              entity_id:
+                - light.one
+                - light.two
+            action: light.turn_on
+            data: {}
+      - conditions:
+          - condition: trigger
+            id: switch_off
+        sequence:
+          - target:
+              entity_id:
+                - light.one
+                - light.two
+            action: light.turn_off
+            data: {}
+    default: []
+mode: single
